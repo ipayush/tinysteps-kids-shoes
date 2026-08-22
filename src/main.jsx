@@ -72,11 +72,22 @@ function StoreProvider({children}) {
 }
 const useStore = () => useContext(StoreContext);
 
+const NAV_LINKS = [
+  ["/shop","Shop"],
+  ["/shop?age=0-2%20Years","Baby"],
+  ["/shop?category=Sneakers","Sneakers"],
+  ["/shop?category=Sports","Sports"],
+  ["/shop?category=School%20Shoes","School"],
+  ["/shop?sale=true","Sale"],
+];
+
 function Header() {
   const {cartCount,wishlist} = useStore();
   const [searchOpen,setSearchOpen] = useState(false);
+  const [menuOpen,setMenuOpen] = useState(false);
   const [query,setQuery] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const submit = e => {
     e.preventDefault();
@@ -84,19 +95,29 @@ function Header() {
     setSearchOpen(false);
   };
 
+  // Close the drawer whenever the route changes (covers link taps + back/forward).
+  useEffect(()=>{ setMenuOpen(false); setSearchOpen(false); }, [location.pathname, location.search]);
+
+  // Lock body scroll while the drawer is open; close on Escape.
+  useEffect(()=>{
+    if(!menuOpen) return;
+    document.body.style.overflow = "hidden";
+    const onKey = e => { if(e.key === "Escape") setMenuOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return ()=>{ document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
+  }, [menuOpen]);
+
   return (
+    <>
     <header className="header">
       <div className="announcement">Free delivery on orders above ₹999 <span>•</span> Easy 7-day returns</div>
       <div className="nav-wrap">
-        <button className="icon-btn mobile-menu"><Menu size={21}/></button>
+        <button className="icon-btn mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen} aria-controls="mobile-nav"><Menu size={21}/></button>
         <Link to="/" className="logo"><span>Tiny</span>Steps</Link>
         <nav className="main-nav">
-          <Link to="/shop">Shop</Link>
-          <Link to="/shop?age=0-2%20Years">Baby</Link>
-          <Link to="/shop?category=Sneakers">Sneakers</Link>
-          <Link to="/shop?category=Sports">Sports</Link>
-          <Link to="/shop?category=School%20Shoes">School</Link>
-          <Link to="/shop?sale=true" className="sale-link">Sale</Link>
+          {NAV_LINKS.map(([to,label])=>(
+            <Link key={to} to={to} className={label==="Sale"?"sale-link":undefined}>{label}</Link>
+          ))}
         </nav>
         <div className="nav-actions">
           <button className="icon-btn" onClick={()=>setSearchOpen(v=>!v)} aria-label="Search"><Search size={20}/></button>
@@ -106,7 +127,22 @@ function Header() {
         </div>
       </div>
       {searchOpen && <form className="search-bar" onSubmit={submit}><Search size={19}/><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search shoes, sneakers, sandals..." /><button type="button" onClick={()=>setSearchOpen(false)}><X size={18}/></button></form>}
-    </header>
+      </header>
+
+      <div className={`mobile-nav-overlay ${menuOpen?"open":""}`} onClick={()=>setMenuOpen(false)} aria-hidden="true"></div>
+      <aside id="mobile-nav" className={`mobile-nav ${menuOpen?"open":""}`} aria-hidden={!menuOpen}>
+        <div className="mobile-nav-head">
+          <Link to="/" className="logo" onClick={()=>setMenuOpen(false)}><span>Tiny</span>Steps</Link>
+          <button className="icon-btn" onClick={()=>setMenuOpen(false)} aria-label="Close menu"><X size={22}/></button>
+        </div>
+        <nav className="mobile-nav-links">
+          {NAV_LINKS.map(([to,label])=>(
+            <Link key={to} to={to} className={label==="Sale"?"sale-link":undefined} onClick={()=>setMenuOpen(false)}>{label}<ArrowRight size={18}/></Link>
+          ))}
+        </nav>
+        <Link to="/account" className="mobile-nav-account" onClick={()=>setMenuOpen(false)}><UserRound size={19}/> My account</Link>
+      </aside>
+    </>
   );
 }
 
