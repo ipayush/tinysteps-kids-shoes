@@ -26,6 +26,22 @@ const products = [
 const categories = ["All","Sneakers","Sports","Casual","Sandals","School Shoes","Clogs"];
 const ages = ["All Ages","0-2 Years","2-5 Years","5-8 Years","8-12 Years"];
 
+// Reveal elements marked with [data-reveal] as they scroll into view.
+// One shared observer, re-scanned whenever the route changes.
+function useScrollReveal(dep) {
+  useEffect(() => {
+    const els = [...document.querySelectorAll("[data-reveal]:not(.revealed)")];
+    if (!els.length) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add("revealed"); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+    els.forEach(el => io.observe(el));
+    return () => io.disconnect();
+  }, [dep]);
+}
+
 const StoreContext = createContext(null);
 
 function StoreProvider({children}) {
@@ -99,7 +115,7 @@ function Hero() {
     <section className="hero">
       <div className="hero-copy">
         <div className="eyebrow"><Sparkles size={16}/> Made for little adventures</div>
-        <h1>Big adventures.<br/><em>Tiny feet.</em></h1>
+        <h1>Big adventures.<br/><em>Tiny feet.<svg className="squiggle" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true"><path d="M5 15 Q 42 3 80 12 T 155 12 T 230 12 T 296 9"/></svg></em></h1>
         <p>Playful, comfy shoes designed for every little step — from first walkers to school-day champions.</p>
         <div className="hero-buttons">
           <Link className="btn primary" to="/shop">Shop the collection <ArrowRight size={18}/></Link>
@@ -113,6 +129,9 @@ function Hero() {
         <div className="blob blob-two"></div>
         <img src="https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=1100&q=90" alt="Kids sneakers"/>
         <div className="floating-card"><span className="float-icon">★</span><div><strong>4.8/5</strong><small>Loved by parents</small></div></div>
+        <Sparkles className="spark s1" size={22}/>
+        <Sparkles className="spark s2" size={15}/>
+        <Sparkles className="spark s3" size={19}/>
       </div>
     </section>
   );
@@ -125,14 +144,14 @@ function CategoryTiles() {
     ["5-8 Years","Play all day","⚡","5-8 Years"],
     ["8-12 Years","Big kid energy","🚀","8-12 Years"]
   ];
-  return <section className="section"><div className="section-head"><div><span className="kicker">Find their fit</span><h2>Shop by age</h2></div><Link to="/shop">View all <ArrowRight size={17}/></Link></div><div className="age-grid">{tiles.map(t=><Link to={`/shop?age=${encodeURIComponent(t[3])}`} className="age-card" key={t[0]}><span className="age-emoji">{t[2]}</span><div><b>{t[0]}</b><small>{t[1]}</small></div><ArrowRight size={18}/></Link>)}</div></section>;
+  return <section className="section"><div className="section-head" data-reveal="left"><div><span className="kicker">Find their fit</span><h2>Shop by age</h2></div><Link to="/shop">View all <ArrowRight size={17}/></Link></div><div className="age-grid">{tiles.map((t,i)=><Link to={`/shop?age=${encodeURIComponent(t[3])}`} className="age-card" data-reveal="scale" style={{"--i":i}} key={t[0]}><span className="age-emoji">{t[2]}</span><div><b>{t[0]}</b><small>{t[1]}</small></div><ArrowRight size={18}/></Link>)}</div></section>;
 }
 
-function ProductCard({product}) {
+function ProductCard({product, index=0}) {
   const {toggleWishlist,wishlist,addToCart} = useStore();
   const wish = wishlist.includes(product.id);
   return (
-    <article className="product-card">
+    <article className="product-card" data-reveal="scale" style={{"--i": index % 8}}>
       <div className="product-image-wrap">
         <Link to={`/product/${product.id}`}><img src={product.image} alt={product.name}/></Link>
         <span className="badge">{product.badge}</span>
@@ -150,7 +169,7 @@ function ProductCard({product}) {
 }
 
 function ProductRow({title,productsToShow}) {
-  return <section className="section"><div className="section-head"><div><span className="kicker">Little favourites</span><h2>{title}</h2></div><Link to="/shop">Shop all <ArrowRight size={17}/></Link></div><div className="product-grid">{productsToShow.map(p=><ProductCard key={p.id} product={p}/>)}</div></section>;
+  return <section className="section"><div className="section-head" data-reveal="left"><div><span className="kicker">Little favourites</span><h2>{title}</h2></div><Link to="/shop">Shop all <ArrowRight size={17}/></Link></div><div className="product-grid">{productsToShow.map((p,i)=><ProductCard key={p.id} product={p} index={i}/>)}</div></section>;
 }
 
 function Home() {
@@ -158,12 +177,12 @@ function Home() {
     <Header/>
     <main>
       <Hero/>
-      <div className="pill-strip"><span>🚚 Free shipping over ₹999</span><span>↩ 7-day easy returns</span><span>🛡️ Secure payments</span><span>✨ Parent-approved comfort</span></div>
+      <div className="pill-strip"><div className="pill-track">{[0,1].map(k=>["🚚 Free shipping over ₹999","↩ 7-day easy returns","🛡️ Secure payments","✨ Parent-approved comfort"].map((t,i)=><span key={`${k}-${i}`}>{t}</span>))}</div></div>
       <CategoryTiles/>
       <ProductRow title="Best sellers" productsToShow={products.slice(0,4)}/>
-      <section className="promo"><div><span className="kicker">Back to school</span><h2>Ready, set, school.</h2><p>Smart, comfy shoes that can keep up from the first bell to the last game.</p><Link className="btn light" to="/shop?category=School%20Shoes">Shop school shoes <ArrowRight size={17}/></Link></div><div className="promo-shapes"><span>🎒</span><span>👟</span><span>✏️</span></div></section>
+      <section className="promo" data-reveal="scale"><div><span className="kicker">Back to school</span><h2>Ready, set, school.</h2><p>Smart, comfy shoes that can keep up from the first bell to the last game.</p><Link className="btn light" to="/shop?category=School%20Shoes">Shop school shoes <ArrowRight size={17}/></Link></div><div className="promo-shapes"><span>🎒</span><span>👟</span><span>✏️</span></div></section>
       <ProductRow title="Trending now" productsToShow={products.slice(4,8)}/>
-      <section className="size-banner"><div><span className="kicker">Not sure about the size?</span><h2>We make tiny feet easy.</h2><p>Use our simple size guide to find their best fit before you order.</p></div><Link className="btn primary" to="/size-guide">Find their size</Link></section>
+      <section className="size-banner" data-reveal="scale"><div><span className="kicker">Not sure about the size?</span><h2>We make tiny feet easy.</h2><p>Use our simple size guide to find their best fit before you order.</p></div><Link className="btn primary" to="/size-guide">Find their size</Link></section>
     </main>
     <Footer/>
   </>;
@@ -206,7 +225,7 @@ function Shop() {
         </aside>
         <section className="results">
           <div className="results-head"><div><b>{filtered.length} styles</b>{search && <span className="search-result"> for “{search}”</span>}</div><div className="result-actions"><button className="filter-mobile" onClick={()=>setFilterOpen(true)}><SlidersHorizontal size={17}/> Filters</button><div className="sort"><span>Sort:</span><select value={sort} onChange={e=>setSort(e.target.value)}><option value="featured">Featured</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option><option value="rating">Top Rated</option></select><ChevronDown size={15}/></div></div></div>
-          {filtered.length ? <div className="product-grid shop-grid">{filtered.map(p=><ProductCard key={p.id} product={p}/>)}</div> : <div className="empty"><span>🔎</span><h3>No tiny shoes found</h3><p>Try a different age, category or price range.</p></div>}
+          {filtered.length ? <div className="product-grid shop-grid">{filtered.map((p,i)=><ProductCard key={p.id} product={p} index={i}/>)}</div> : <div className="empty"><span>🔎</span><h3>No tiny shoes found</h3><p>Try a different age, category or price range.</p></div>}
         </section>
       </div>
     </main>
@@ -284,7 +303,7 @@ function Checkout() {
 function Wishlist() {
   const {wishlist} = useStore();
   const items = products.filter(p=>wishlist.includes(p.id));
-  return <><Header/><main className="wishlist-page"><div className="cart-heading"><span className="kicker">Saved for later</span><h1>Little wish list</h1><p>Your favourite pairs, all in one place.</p></div>{items.length?<div className="product-grid">{items.map(p=><ProductCard key={p.id} product={p}/>)}</div>:<div className="empty"><span>♡</span><h2>Nothing saved yet</h2><p>Tap the heart on any pair you love.</p><Link className="btn primary" to="/shop">Explore shoes</Link></div>}</main><Footer/></>;
+  return <><Header/><main className="wishlist-page"><div className="cart-heading"><span className="kicker">Saved for later</span><h1>Little wish list</h1><p>Your favourite pairs, all in one place.</p></div>{items.length?<div className="product-grid">{items.map((p,i)=><ProductCard key={p.id} product={p} index={i}/>)}</div>:<div className="empty"><span>♡</span><h2>Nothing saved yet</h2><p>Tap the heart on any pair you love.</p><Link className="btn primary" to="/shop">Explore shoes</Link></div>}</main><Footer/></>;
 }
 
 function SizeGuide() {
@@ -303,6 +322,7 @@ function App(){
 function Routes(){
   const location = useLocation();
   const path=location.pathname;
+  useScrollReveal(path);
   if(path==="/") return <Home/>;
   if(path==="/shop") return <Shop/>;
   if(path.startsWith("/product/")) return <ProductPage/>;
